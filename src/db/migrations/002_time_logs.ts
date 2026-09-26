@@ -12,9 +12,22 @@ import { Kysely } from 'kysely';
 // The down() method should drop the `time_logs` table.
 
 export async function up(db: Kysely<any>): Promise<void> {
-  // TODO: Student implementation
+  await db.schema
+    .createTable('time_logs')
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('ticket_id', 'integer', (col) =>
+      col.references('tickets.id').notNull(),
+    )
+    .addColumn('user_id', 'integer', (col) =>
+      col.references('users.id').notNull(),
+    )
+    .addColumn('hours', 'integer', (col) => col.notNull())
+    .addColumn('logged_at', 'timestamptz', (col) =>
+      col.defaultTo('now()').notNull(),
+    )
+    .execute();
 }
 
-export async function down(db: Kysely<any>): Promise<void> {
-  // TODO: Student implementation
+export async function down(db: Kysely<any>): Promise<void> {  
+  await db.schema.dropTable('time_logs').execute();
 }
