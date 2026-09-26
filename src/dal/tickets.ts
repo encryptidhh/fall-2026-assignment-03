@@ -1,4 +1,4 @@
-import { db, Ticket, NewTicket } from '../db/database.js';
+import { db, Ticket, NewTicket, TimeLog, NewTimeLog } from '../db/database.js';
 
 export interface GetAllTicketsOptions {
   limit?: number;
@@ -52,4 +52,30 @@ export async function updateTicketStatus(
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
+}
+
+export async function insertTimeLog(
+  ticketId: number,
+  userId: number,
+  hours: number,
+): Promise<TimeLog> {
+  return await db
+  .insertInto('time_logs')
+  .values({
+    ticket_id: ticketId,
+    user_id: userId,
+    hours,
+  })
+  .returningAll()
+  .executeTakeFirstOrThrow();
+}
+
+export async function getTotalHoursForTicket(ticketId: number): Promise<number> {
+  const row = await db
+  .selectFrom('time_logs')
+  .where('ticket_id', '=', ticketId)
+  .select((eb) => eb.fn.sum('hours').as('total'))
+  .executeTakeFirstOrThrow();
+
+  return Number(row.total ?? 0);
 }

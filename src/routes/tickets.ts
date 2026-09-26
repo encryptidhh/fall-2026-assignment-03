@@ -7,6 +7,8 @@ import {
   createTicket,
   updateTicketStatus,
 } from '../dal/tickets.js';
+import { insertTimeLog, getTotalHoursForTicket }
+from '../dal/timeLogs.js';
 
 const router = Router();
 
@@ -22,6 +24,19 @@ function parseOffset(value: unknown): number | undefined {
   if (value === undefined) return undefined;
   const n = Number(value);
   return Number.isInteger(n) && n >= 0 ? n : undefined;
+}
+
+function parseTicketId(params: unknown): number | undefined {
+  const id = Number((params as { id?: string}).id);
+  return Number.isInteger(id) ? id : undefined;
+}
+
+function parseHours(body: unknown): number | undefined {
+  const hours = (body as { hours?: unknown})?.hours;
+  return typeof hours === 'number' && 
+  Number.isInteger(hours) && hours > 0 
+    ? hours 
+    : undefined;
 }
 
 const VALID_STATUSES = new Set(['TODO', 'IN_PROGRESS', 'DONE']);
@@ -66,7 +81,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /tickets (auth required)
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/:id/time', authMiddleware, async (req, res) => {
   const { title, description } = req.body ?? {};
 
   if (typeof title !== 'string' || title.trim() === '') {
@@ -86,23 +101,51 @@ router.post('/', authMiddleware, async (req, res) => {
 
 // PATCH /tickets/:id/status (auth required)
 router.patch('/:id/status', authMiddleware, async (req, res) => {
-  const id = Number(req.params.id);
-  if (Number.isNaN(id)) {
+  const id = Number(req.params);
+  if (id === undefined) {
     return res.status(400).json({ error: 'id must be a number' });
   }
 
   const { status } = req.body ?? {};
   if (typeof status !== 'string' || !VALID_STATUSES.has(status)) {
     return res.status(400).json({
-      error: `status must be one of: ${[...VALID_STATUSES].join(', ')}`,
+      error: `status must be one of: ${[...VALID_STATUSES].join(', ')}`, 
     });
   }
 
-  const ticket = await updateTicketStatus(id, status);
-  if (ticket === undefined) {
+  const updated = await updateTicketStatus(id, status);
+  if (updated === undefined) {
     return res.status(404).json({ error: 'Ticket not found' });
   }
-  return res.status(200).json(ticket);
+
+  return res.status(200).json(updated);
+});
+
+//POST /tickets/:id/time (auth required)
+router.post('/:id/time', authMiddleware, async(req, res) => {
+  const id = parseTicketId(req.params);
+  if (id === undefined) {
+    return res.status(400).json({ error: 'id must be a valid number' });
+  }
+
+  const hours = parseHours(req.body);
+  if (hours === undefined) {
+    return res.status(400).json({error: 'hours must be a positive integer'});
+  }
+
+  const log = await insertTimeLog(id, res.locals.userId as number, hours);
+  return res.status(201).json(log);
+});
+
+// GET /tickets/:id/time
+router.get('/:id/time', async(req, res) => {
+  const id = parseTicketId(req.params);
+  if (id === undefined) {
+    return res.status(400).json({error: 'id must be a valid number'});
+  }
+
+  const totalHours = await getTotalHoursForTicket(id);
+  return res.status(200).json({ticket_id: id, total_hours: totalHours});
 });
 
 export default router;
