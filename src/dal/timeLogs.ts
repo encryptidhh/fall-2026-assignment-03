@@ -6,7 +6,7 @@ export async function insertTimeLog(
   ticketId: number,
   userId: number,
   hours: number,
-): Promise<any> {
+): Promise<TimeLog> {
   // TODO: Student implementation
   const newLog: NewTimeLog = {
     ticket_id: ticketId,

@@ -10,6 +10,7 @@ import pg from 'pg';
 
 const { Pool } = pg;
 
+
 export interface UsersTable {
   id: Generated<number>;
   name: string;

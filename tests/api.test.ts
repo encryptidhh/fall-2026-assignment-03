@@ -3,6 +3,10 @@ import request from 'supertest';
 import { app } from '../src/index.js';
 
 describe('Part 1: API Integration Tests', () => {
+
+  it('math works', () => {
+    expect(1).toBe(1);
+  });
   
   let userId: number;
 
