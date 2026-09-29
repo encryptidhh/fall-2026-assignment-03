@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/index.js';
 
@@ -8,7 +8,14 @@ describe('Part 1: API Integration Tests', () => {
     expect(1).toBe(1);
   });
   
-  let userId: number;
+  // Helper to create a test user
+  async function createTestUser(email = `tester-${Date.now()}-${Math.random()}@example.com`) {
+    const res = await request(app).post('/users').send({
+      name: 'Integration Tester',
+      email,
+    });
+    return res.body.id as number;
+  }
 
   // Test user creation (POST /users)
   it('should create a user and return 201', async () => {
@@ -20,12 +27,11 @@ describe('Part 1: API Integration Tests', () => {
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('id');
     expect(res.body.name).toBe('Integration Tester');
-
-    userId = res.body.id;
   });
 
   // Test ticket creation (POST /tickets)
   it('should create a ticket and return 201 with creator_id from header', async () => {
+    const userId = await createTestUser();
     const res = await request(app)
       .post('/tickets')
       .set('X-User-Id', String(userId))
@@ -71,6 +77,7 @@ describe('Part 1: API Integration Tests', () => {
 
   // Test pagination and filtering on GET /tickets
   it('should respect limit and offset on GET /tickets', async () => {
+    const userId = await createTestUser();
     // Seed a few tickets to make pagination observable
     for (let i = 0; i < 5; i++) {
       await request(app)
@@ -91,6 +98,12 @@ describe('Part 1: API Integration Tests', () => {
   });
 
   it('should filter tickets by status on GET /tickets', async () => {
+    const userId = await createTestUser();
+    await request(app)
+      .post('/tickets')
+      .set('X-User-Id', String(userId))
+      .send({ title: 'Filter ticket' });
+
     const res = await request(app).get('/tickets?status=TODO');
 
     expect(res.status).toBe(200);

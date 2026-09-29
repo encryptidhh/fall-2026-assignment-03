@@ -81,7 +81,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /tickets (auth required)
-router.post('/:id/time', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   const { title, description } = req.body ?? {};
 
   if (typeof title !== 'string' || title.trim() === '') {
@@ -101,8 +101,8 @@ router.post('/:id/time', authMiddleware, async (req, res) => {
 
 // PATCH /tickets/:id/status (auth required)
 router.patch('/:id/status', authMiddleware, async (req, res) => {
-  const id = Number(req.params);
-  if (id === undefined) {
+  const id = Number(req.params.id);
+  if (Number.isNaN(id)) {
     return res.status(400).json({ error: 'id must be a number' });
   }
 
